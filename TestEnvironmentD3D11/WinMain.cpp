@@ -30,12 +30,12 @@ IDWriteFactory* pDWriteFactory = nullptr;
 IDWriteTextLayout* pTextLayout = nullptr;
 IDWriteTextFormat* pTextFormat = nullptr;
 
-bool InitD3D( HWND hWnd)
+bool InitD3D(HWND hWnd)
 {
 	HRESULT hr = S_OK;
 	RECT rc{ 0 };
 
-	GetClientRect( hWnd, &rc );
+	GetClientRect(hWnd, &rc);
 	UINT uWidth = rc.right - rc.left;
 	UINT uHeight = rc.bottom - rc.top;
 
@@ -58,69 +58,72 @@ bool InitD3D( HWND hWnd)
 
 	D3D_FEATURE_LEVEL featureLevel;
 
-	hr = D3D11CreateDeviceAndSwapChain( nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
-										nullptr, 0, D3D11_SDK_VERSION, &sd, &pSwapchain, &pDevice, &featureLevel, &pDeviceContext );
-	if (FAILED( hr ))
+	hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags,
+		nullptr, 0, D3D11_SDK_VERSION, &sd, &pSwapchain, &pDevice, &featureLevel, &pDeviceContext);
+	if (FAILED(hr))
 		return false;
 
 
 	// Get a pointer to the back buffer for the render target view
 	ID3D11Texture2D* pBackbuffer = nullptr;
-	hr = pSwapchain->GetBuffer( 0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer) );
-	if (FAILED( hr ))
+	hr = pSwapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackbuffer));
+	if (FAILED(hr))
 		return false;
 
 	// Create render target view
-	hr = pDevice->CreateRenderTargetView( pBackbuffer, nullptr, &pRenderTargetView );
+	hr = pDevice->CreateRenderTargetView(pBackbuffer, nullptr, &pRenderTargetView);
 	pBackbuffer->Release();
-	if (FAILED( hr ))
+	if (FAILED(hr))
 		return false;
 
 
 	// text rendering shenanigans (directwrite)
-	hr = pSwapchain->QueryInterface( __uuidof(IDXGISwapChain), reinterpret_cast<void**>(&pDXGISwapchain) );
-	if (FAILED( hr ))
+	hr = pSwapchain->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&pDXGISwapchain));
+	if (FAILED(hr))
 		return false;
 
-	hr = pDXGISwapchain->GetBuffer( 0, __uuidof(IDXGISurface), reinterpret_cast<void**>(&pDXGISurface) );
-	if (FAILED( hr ))
+	hr = pDXGISwapchain->GetBuffer(0, __uuidof(IDXGISurface), reinterpret_cast<void**>(&pDXGISurface));
+	if (FAILED(hr))
 		return false;
 
-	hr = D2D1CreateFactory( D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory );
-	if (FAILED( hr ))
+	hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory);
+	if (FAILED(hr))
 		return false;
 
-	float dpiX, dpiY;
-	pD2DFactory->GetDesktopDpi( &dpiX, &dpiY );
+	//float dpiX, dpiY;
+	//pD2DFactory->GetDesktopDpi(&dpiX, &dpiY);
+	auto dpi = GetDpiForWindow(hWnd);
 	D2D1_RENDER_TARGET_PROPERTIES rtp;
-	ZeroMemory( &rtp, sizeof( rtp ) );
-	rtp.dpiX = dpiX;
-	rtp.dpiY = dpiY;
+	ZeroMemory(&rtp, sizeof(rtp));
+	//rtp.dpiX = dpiX;
+	//rtp.dpiY = dpiY;
+	rtp.dpiX = (float)dpi;
+	rtp.dpiY = (float)dpi;
 	rtp.type = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-	rtp.pixelFormat = D2D1::PixelFormat( DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED );
+	rtp.pixelFormat = D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN, D2D1_ALPHA_MODE_PREMULTIPLIED);
 	rtp.usage = D2D1_RENDER_TARGET_USAGE_NONE;
 
-	hr = pD2DFactory->CreateDxgiSurfaceRenderTarget( pDXGISurface, &rtp, &pTextRenderTarget );
-	if (FAILED( hr ))
+	hr = pD2DFactory->CreateDxgiSurfaceRenderTarget(pDXGISurface, &rtp, &pTextRenderTarget);
+	if (FAILED(hr))
 		return false;
 
-	hr = DWriteCreateFactory( DWRITE_FACTORY_TYPE_ISOLATED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&pDWriteFactory) );
-	if (FAILED( hr ))
+	hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_ISOLATED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&pDWriteFactory));
+	if (FAILED(hr))
 		return false;
 
-	swprintf_s( szDevice, 256, L"DevicePtr: 0x%p\nSwapchainPtr: 0x%p\n", &pDevice, &pSwapchain );
+	swprintf_s(szDevice, 256, L"DevicePtr: 0x%p\nSwapchainPtr: 0x%p\n", &pDevice, &pSwapchain);
 
-	hr = pDWriteFactory->CreateTextFormat( L"Consolas", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 18.0f, L"en-us", &pTextFormat );
-	if (FAILED( hr ))
+	hr = pDWriteFactory->CreateTextFormat(L"Consolas", nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, 18.0f, L"en-us", &pTextFormat);
+	if (FAILED(hr))
 		return false;
 
-	hr = pDWriteFactory->CreateTextLayout( szDevice, lstrlenW( szDevice ), pTextFormat, uWidth, uHeight, &pTextLayout );
-	if (FAILED( hr ))
+	hr = pDWriteFactory->CreateTextLayout(szDevice, lstrlenW(szDevice), pTextFormat, uWidth, uHeight, &pTextLayout);
+	if (FAILED(hr))
 		return false;
 
 	D2D1_COLOR_F color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	hr = pTextRenderTarget->CreateSolidColorBrush( color, &pSolidBrush );
-	if (FAILED( hr ))
+	hr = pTextRenderTarget->CreateSolidColorBrush(color, &pSolidBrush);
+	if (FAILED(hr))
 		return false;
 
 	return true;
@@ -128,36 +131,36 @@ bool InitD3D( HWND hWnd)
 
 float bgColor[4] = { 0.1f , 0.1f, 0.1f, 1.0f };
 D2D1_POINT_2F textPos = { 0,0 };
-void Render( NativeWindow& wnd )
+void Render(NativeWindow& wnd)
 {
-	pDeviceContext->ClearRenderTargetView( pRenderTargetView, bgColor );
+	pDeviceContext->ClearRenderTargetView(pRenderTargetView, bgColor);
 	pTextRenderTarget->BeginDraw();
-	pTextRenderTarget->DrawTextLayout( textPos, pTextLayout, pSolidBrush );
+	pTextRenderTarget->DrawTextLayout(textPos, pTextLayout, pSolidBrush);
 	pTextRenderTarget->EndDraw();
-	pSwapchain->Present( 0, 0 );
+	pSwapchain->Present(0, 0);
 }
 
-int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	NativeWindow wnd;
 
-	wnd.Create( hInstance, nCmdShow );
+	wnd.Create(hInstance, nCmdShow);
 
-	if (!InitD3D( wnd.GetHandle() ))
+	if (!InitD3D(wnd.GetHandle()))
 		return 1;
 
 	MSG m;
 	while (true)
 	{
-		while (PeekMessage( &m, NULL, 0, 0, PM_REMOVE ) && m.message != WM_QUIT)
+		while (PeekMessage(&m, NULL, 0, 0, PM_REMOVE) && m.message != WM_QUIT)
 		{
-			TranslateMessage( &m );
-			DispatchMessage( &m );
+			TranslateMessage(&m);
+			DispatchMessage(&m);
 		}
 		if (m.message == WM_QUIT)
 			break;
 
-		Render( wnd );
+		Render(wnd);
 	}
 
 	return 0;
